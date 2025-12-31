@@ -118,7 +118,12 @@ export async function handler(event) {
   }
 
   const method = event.requestContext?.http?.method || event.httpMethod;
-  const path = event.requestContext?.http?.path || event.path;
+  let path = event.requestContext?.http?.path || event.path;
+
+  // Normalize path - remove /prod prefix if present
+  if (path.startsWith('/prod')) {
+    path = path.substring(5);
+  }
 
   try {
     // Auth endpoint

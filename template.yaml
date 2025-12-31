@@ -23,7 +23,7 @@ Resources:
   RecipesBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub 'kh-recipes-data-${AWS::AccountId}'
+      BucketName: !Sub 'kh-recipes-${AWS::Region}-${AWS::AccountId}'
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
