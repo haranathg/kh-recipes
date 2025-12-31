@@ -25,3 +25,9 @@ npm-debug.log*
 
 # Zip files
 *.zip
+
+# SAM build artifacts
+.aws-sam/
+
+# Local env (keep .env.production for Amplify reference)
+.env.local

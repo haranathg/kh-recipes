@@ -1,0 +1,10 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "kh-recipes"
+resolve_s3 = true
+s3_prefix = "kh-recipes"
+region = "us-east-1"
+confirm_changeset = false
+capabilities = "CAPABILITY_IAM"
+profile = "coguser"

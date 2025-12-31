@@ -1,0 +1,119 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: KH Recipes - Voice-enabled recipe management app
+
+Parameters:
+  AnthropicApiKey:
+    Type: String
+    NoEcho: true
+    Description: Anthropic API key for Claude
+  Passkey:
+    Type: String
+    NoEcho: true
+    Description: Passkey for app authentication
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs20.x
+    MemorySize: 256
+
+Resources:
+  # S3 Bucket for recipe storage
+  RecipesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'kh-recipes-data-${AWS::AccountId}'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT, POST]
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+
+  # Lambda Function
+  RecipesFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: kh-recipes-api
+      Handler: lambda.handler
+      CodeUri: server/
+      Environment:
+        Variables:
+          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
+          PASSKEY: !Ref Passkey
+          S3_BUCKET: !Ref RecipesBucket
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1'
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref RecipesBucket
+      Events:
+        ApiAuth:
+          Type: HttpApi
+          Properties:
+            Path: /api/auth
+            Method: POST
+            ApiId: !Ref RecipesApi
+        ApiRecipesGet:
+          Type: HttpApi
+          Properties:
+            Path: /api/recipes
+            Method: GET
+            ApiId: !Ref RecipesApi
+        ApiRecipesPost:
+          Type: HttpApi
+          Properties:
+            Path: /api/recipes
+            Method: POST
+            ApiId: !Ref RecipesApi
+        ApiParse:
+          Type: HttpApi
+          Properties:
+            Path: /api/parse
+            Method: POST
+            ApiId: !Ref RecipesApi
+        ApiOptions:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: OPTIONS
+            ApiId: !Ref RecipesApi
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: es2020
+        Sourcemap: true
+        EntryPoints:
+          - lambda.js
+        External:
+          - '@aws-sdk/client-s3'
+
+  # HTTP API Gateway
+  RecipesApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowHeaders:
+          - Content-Type
+          - x-passkey
+        AllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${RecipesApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+  BucketName:
+    Description: S3 bucket for recipe data
+    Value: !Ref RecipesBucket
