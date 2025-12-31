@@ -9,6 +9,8 @@ const CATEGORIES = [
   'Snacks',
   'Drinks',
   'Sauces & Dips',
+  'Powders',
+  'Temple Recipes',
   'Other'
 ];
 

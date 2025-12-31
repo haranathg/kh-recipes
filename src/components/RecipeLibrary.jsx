@@ -1,10 +1,21 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { clearPasskey } from '../api';
-import RecipeCard from './RecipeCard';
 
-const ALL_CATEGORIES = [
-  'All',
+const CATEGORY_EMOJI = {
+  'Breakfast': '🍳',
+  'Mains': '🍽️',
+  'Sides': '🥗',
+  'Desserts': '🍰',
+  'Snacks': '🍿',
+  'Drinks': '🥤',
+  'Sauces & Dips': '🫙',
+  'Powders': '🧂',
+  'Temple Recipes': '🪷',
+  'Other': '📝',
+};
+
+const CATEGORY_ORDER = [
   'Breakfast',
   'Mains',
   'Sides',
@@ -19,39 +30,41 @@ const ALL_CATEGORIES = [
 
 export default function RecipeLibrary({ recipes, loading, error, syncing, onLogout }) {
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  // Filter recipes based on search and category
+  // Filter recipes based on search
   const filteredRecipes = useMemo(() => {
-    return recipes.filter(recipe => {
-      // Category filter
-      if (selectedCategory !== 'All' && recipe.category !== selectedCategory) {
-        return false;
-      }
-      
-      // Search filter
-      if (search.trim()) {
-        const searchLower = search.toLowerCase();
-        const matchesName = recipe.name?.toLowerCase().includes(searchLower);
-        const matchesDesc = recipe.description?.toLowerCase().includes(searchLower);
-        const matchesIngredients = recipe.ingredients?.some(ing => 
-          ing.toLowerCase().includes(searchLower)
-        );
-        
-        if (!matchesName && !matchesDesc && !matchesIngredients) {
-          return false;
-        }
-      }
-      
-      return true;
-    });
-  }, [recipes, search, selectedCategory]);
+    if (!search.trim()) return recipes;
 
-  // Get categories that have recipes
-  const usedCategories = useMemo(() => {
-    const used = new Set(recipes.map(r => r.category).filter(Boolean));
-    return ALL_CATEGORIES.filter(cat => cat === 'All' || used.has(cat));
-  }, [recipes]);
+    const searchLower = search.toLowerCase();
+    return recipes.filter(recipe => {
+      const matchesName = recipe.name?.toLowerCase().includes(searchLower);
+      const matchesDesc = recipe.description?.toLowerCase().includes(searchLower);
+      const matchesIngredients = recipe.ingredients?.some(ing =>
+        ing.toLowerCase().includes(searchLower)
+      );
+      return matchesName || matchesDesc || matchesIngredients;
+    });
+  }, [recipes, search]);
+
+  // Group recipes by category
+  const recipesByCategory = useMemo(() => {
+    const grouped = {};
+    filteredRecipes.forEach(recipe => {
+      const cat = recipe.category || 'Other';
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(recipe);
+    });
+    // Sort recipes alphabetically within each category
+    Object.keys(grouped).forEach(cat => {
+      grouped[cat].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    });
+    return grouped;
+  }, [filteredRecipes]);
+
+  // Get categories in order
+  const orderedCategories = useMemo(() => {
+    return CATEGORY_ORDER.filter(cat => recipesByCategory[cat]?.length > 0);
+  }, [recipesByCategory]);
 
   const handleLogout = () => {
     clearPasskey();
@@ -86,7 +99,7 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
       </header>
 
       {/* Search */}
-      <div className="mb-4">
+      <div className="mb-6">
         <input
           type="text"
           value={search}
@@ -96,25 +109,6 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
         />
       </div>
 
-      {/* Category Pills */}
-      {usedCategories.length > 1 && (
-        <div className="flex gap-2 mb-6 overflow-x-auto hide-scrollbar pb-2">
-          {usedCategories.map(category => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
-                selectedCategory === category
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-white text-amber-800 hover:bg-amber-100'
-              }`}
-            >
-              {category}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Error Message */}
       {error && (
         <div className="mb-4 p-3 bg-amber-100 border border-amber-300 rounded-xl text-amber-800 text-sm">
@@ -122,7 +116,7 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
         </div>
       )}
 
-      {/* Recipe List */}
+      {/* Recipe Index */}
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block w-10 h-10 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin"></div>
@@ -140,16 +134,47 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
             <>
               <div className="text-5xl mb-4">🔍</div>
               <p className="text-amber-800 font-medium">No recipes found</p>
-              <p className="text-amber-600 mt-2">Try a different search or category</p>
+              <p className="text-amber-600 mt-2">Try a different search term</p>
             </>
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          {filteredRecipes.map(recipe => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          {orderedCategories.map((category, catIndex) => (
+            <div key={category}>
+              {/* Category Header */}
+              <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+                <span>{CATEGORY_EMOJI[category] || '📝'}</span>
+                <span className="font-semibold text-amber-900">{category}</span>
+                <span className="text-amber-500 text-sm">({recipesByCategory[category].length})</span>
+              </div>
+              {/* Recipe List */}
+              <ul>
+                {recipesByCategory[category].map((recipe) => (
+                  <li key={recipe.id}>
+                    <Link
+                      to={`/recipe/${recipe.id}`}
+                      className="flex items-center px-4 py-2.5 hover:bg-amber-50 transition-colors border-b border-gray-100 last:border-b-0"
+                    >
+                      <span className="text-gray-700 flex-1">{recipe.name}</span>
+                      <span className="text-gray-300 text-sm">›</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {catIndex < orderedCategories.length - 1 && (
+                <div className="border-b-2 border-amber-100"></div>
+              )}
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Recipe count */}
+      {!loading && filteredRecipes.length > 0 && (
+        <p className="text-center text-sm text-amber-600 mt-4">
+          {filteredRecipes.length} recipe{filteredRecipes.length !== 1 ? 's' : ''}
+        </p>
       )}
     </div>
   );
