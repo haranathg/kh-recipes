@@ -126,6 +126,11 @@ export async function handler(event) {
   }
 
   try {
+    // Health check / keep-warm endpoint
+    if (path === '/api/health' || path === '/' || path === '') {
+      return response(200, { status: 'ok', timestamp: new Date().toISOString() });
+    }
+
     // Auth endpoint
     if (path === '/api/auth' && method === 'POST') {
       const body = JSON.parse(event.body || '{}');

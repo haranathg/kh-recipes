@@ -83,6 +83,18 @@ Resources:
             Path: /{proxy+}
             Method: OPTIONS
             ApiId: !Ref RecipesApi
+        ApiHealth:
+          Type: HttpApi
+          Properties:
+            Path: /api/health
+            Method: GET
+            ApiId: !Ref RecipesApi
+        # Keep-warm: ping every 5 minutes to prevent cold starts
+        KeepWarm:
+          Type: Schedule
+          Properties:
+            Schedule: rate(5 minutes)
+            Description: Keep Lambda warm to prevent cold starts
     Metadata:
       BuildMethod: esbuild
       BuildProperties:
