@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { clearPasskey } from '../api';
 
@@ -30,21 +30,38 @@ const CATEGORY_ORDER = [
 
 export default function RecipeLibrary({ recipes, loading, error, syncing, onLogout }) {
   const [search, setSearch] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const searchInputRef = useRef(null);
 
-  // Filter recipes based on search
+  // Get categories that have recipes
+  const usedCategories = useMemo(() => {
+    const used = new Set(recipes.map(r => r.category).filter(Boolean));
+    return ['All', ...CATEGORY_ORDER.filter(cat => used.has(cat))];
+  }, [recipes]);
+
+  // Filter recipes based on search and category
   const filteredRecipes = useMemo(() => {
-    if (!search.trim()) return recipes;
-
-    const searchLower = search.toLowerCase();
     return recipes.filter(recipe => {
-      const matchesName = recipe.name?.toLowerCase().includes(searchLower);
-      const matchesDesc = recipe.description?.toLowerCase().includes(searchLower);
-      const matchesIngredients = recipe.ingredients?.some(ing =>
-        ing.toLowerCase().includes(searchLower)
-      );
-      return matchesName || matchesDesc || matchesIngredients;
+      // Category filter
+      if (selectedCategory !== 'All' && recipe.category !== selectedCategory) {
+        return false;
+      }
+
+      // Search filter
+      if (search.trim()) {
+        const searchLower = search.toLowerCase();
+        const matchesName = recipe.name?.toLowerCase().includes(searchLower);
+        const matchesDesc = recipe.description?.toLowerCase().includes(searchLower);
+        const matchesIngredients = recipe.ingredients?.some(ing =>
+          ing.toLowerCase().includes(searchLower)
+        );
+        return matchesName || matchesDesc || matchesIngredients;
+      }
+
+      return true;
     });
-  }, [recipes, search]);
+  }, [recipes, search, selectedCategory]);
 
   // Group recipes by category
   const recipesByCategory = useMemo(() => {
@@ -61,7 +78,7 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
     return grouped;
   }, [filteredRecipes]);
 
-  // Get categories in order
+  // Get categories in order for display
   const orderedCategories = useMemo(() => {
     return CATEGORY_ORDER.filter(cat => recipesByCategory[cat]?.length > 0);
   }, [recipesByCategory]);
@@ -70,6 +87,22 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
     clearPasskey();
     onLogout();
   };
+
+  const toggleSearch = () => {
+    setShowSearch(!showSearch);
+    if (!showSearch) {
+      setTimeout(() => searchInputRef.current?.focus(), 100);
+    } else {
+      setSearch('');
+    }
+  };
+
+  // Auto-focus when search opens
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [showSearch]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
@@ -82,6 +115,15 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={toggleSearch}
+            className={`p-2 rounded-xl transition-colors ${
+              showSearch ? 'bg-amber-100 text-amber-700' : 'text-amber-700 hover:text-amber-900'
+            }`}
+            title="Search"
+          >
+            🔍
+          </button>
           <Link
             to="/add"
             className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-colors"
@@ -98,16 +140,38 @@ export default function RecipeLibrary({ recipes, loading, error, syncing, onLogo
         </div>
       </header>
 
-      {/* Search */}
-      <div className="mb-6">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="🔍 Search recipes..."
-          className="w-full px-4 py-3 bg-white border-2 border-transparent rounded-xl shadow-sm focus:outline-none focus:border-amber-400 transition-colors"
-        />
-      </div>
+      {/* Search (collapsible) */}
+      {showSearch && (
+        <div className="mb-4">
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search recipes..."
+            className="w-full px-4 py-3 bg-white border-2 border-transparent rounded-xl shadow-sm focus:outline-none focus:border-amber-400 transition-colors"
+          />
+        </div>
+      )}
+
+      {/* Category Pills */}
+      {usedCategories.length > 1 && (
+        <div className="flex gap-2 mb-6 overflow-x-auto hide-scrollbar pb-2">
+          {usedCategories.map(category => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-3 py-1.5 rounded-full font-medium text-sm whitespace-nowrap transition-colors ${
+                selectedCategory === category
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-white text-amber-800 hover:bg-amber-100'
+              }`}
+            >
+              {category === 'All' ? 'All' : `${CATEGORY_EMOJI[category] || ''} ${category}`}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (
