@@ -8,6 +8,8 @@ const CATEGORY_EMOJI = {
   'Snacks': '🍿',
   'Drinks': '🥤',
   'Sauces & Dips': '🫙',
+  'Powders': '🧂',
+  'Temple Recipes': '🪷',
   'Other': '📝',
 };
 

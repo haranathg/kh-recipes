@@ -11,6 +11,8 @@ const CATEGORIES = [
   'Snacks',
   'Drinks',
   'Sauces & Dips',
+  'Powders',
+  'Temple Recipes',
   'Other'
 ];
 
@@ -25,6 +27,8 @@ export default function AddRecipe({ onSave }) {
   
   const recognitionRef = useRef(null);
   const isRecordingRef = useRef(false);
+  const textareaRef = useRef(null);
+  const cursorPositionRef = useRef(null);
   const [interimText, setInterimText] = useState('');
 
   // Keep ref in sync with state
@@ -59,7 +63,21 @@ export default function AddRecipe({ onSave }) {
         setInterimText(interimTranscript);
 
         if (finalTranscript) {
-          setTranscript(prev => prev + finalTranscript + ' ');
+          // Insert at cursor position if set, otherwise append
+          setTranscript(prev => {
+            const pos = cursorPositionRef.current;
+            if (pos !== null && pos >= 0 && pos < prev.length) {
+              // Insert at cursor position
+              const before = prev.substring(0, pos);
+              const after = prev.substring(pos);
+              const newText = before + finalTranscript + ' ' + after;
+              // Update cursor position for next insert
+              cursorPositionRef.current = pos + finalTranscript.length + 1;
+              return newText;
+            }
+            // Append at end
+            return prev + finalTranscript + ' ';
+          });
           setInterimText('');
         }
       };
@@ -123,11 +141,25 @@ export default function AddRecipe({ onSave }) {
     }
   };
 
+  const stopRecording = () => {
+    if (isRecording) {
+      setIsRecording(false);
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+    }
+  };
+
   const handleFormat = async () => {
     if (!transcript.trim()) {
       setError('Please enter or dictate a recipe first');
       return;
     }
+
+    // Stop recording if active
+    stopRecording();
 
     setLoading(true);
     setError('');
@@ -239,11 +271,20 @@ export default function AddRecipe({ onSave }) {
         </label>
         <div className="relative">
           <textarea
+            ref={textareaRef}
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
+            onSelect={(e) => {
+              // Capture cursor position when user clicks/selects in textarea
+              cursorPositionRef.current = e.target.selectionStart;
+            }}
+            onBlur={(e) => {
+              // Keep cursor position when textarea loses focus (e.g., clicking mic button)
+              cursorPositionRef.current = e.target.selectionStart;
+            }}
             placeholder={
               mode === 'voice'
-                ? 'Your dictation will appear here. You can edit it before formatting.'
+                ? 'Your dictation will appear here. You can edit it before formatting. Tap where you want to insert, then record.'
                 : "Type or paste your recipe here. Include ingredients, amounts, and cooking steps. For example: This is my chocolate chip cookies recipe. You need 2 cups flour, 1 cup butter..."
             }
             className="w-full h-48 p-4 border-2 border-gray-200 rounded-xl resize-none focus:outline-none focus:border-amber-400 transition-colors"

@@ -12,6 +12,8 @@ const ALL_CATEGORIES = [
   'Snacks',
   'Drinks',
   'Sauces & Dips',
+  'Powders',
+  'Temple Recipes',
   'Other'
 ];
 

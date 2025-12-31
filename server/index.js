@@ -135,7 +135,7 @@ app.post('/api/parse', checkPasskey, async (req, res) => {
 Recipe text:
 "${text}"
 
-Categories to choose from: Breakfast, Mains, Sides, Desserts, Snacks, Drinks, Sauces & Dips, Other
+Categories to choose from: Breakfast, Mains, Sides, Desserts, Snacks, Drinks, Sauces & Dips, Powders, Temple Recipes, Other
 
 Respond ONLY with valid JSON in this exact format:
 {
