@@ -83,6 +83,12 @@ Resources:
             Path: /{proxy+}
             Method: OPTIONS
             ApiId: !Ref RecipesApi
+        ApiRecipesPublicGet:
+          Type: HttpApi
+          Properties:
+            Path: /api/recipes/public
+            Method: GET
+            ApiId: !Ref RecipesApi
         ApiHealth:
           Type: HttpApi
           Properties:

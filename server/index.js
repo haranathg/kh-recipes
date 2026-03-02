@@ -93,6 +93,17 @@ app.post('/api/auth', (req, res) => {
   }
 });
 
+// Public read-only recipes (no auth required)
+app.get('/api/recipes/public', async (req, res) => {
+  try {
+    const data = await getRecipes();
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching recipes:', error);
+    res.status(500).json({ error: 'Failed to fetch recipes' });
+  }
+});
+
 // Get all recipes
 app.get('/api/recipes', checkPasskey, async (req, res) => {
   try {

@@ -131,6 +131,12 @@ export async function handler(event) {
       return response(200, { status: 'ok', timestamp: new Date().toISOString() });
     }
 
+    // Public read-only recipes (no auth required)
+    if (path === '/api/recipes/public' && method === 'GET') {
+      const data = await getRecipes();
+      return response(200, data);
+    }
+
     // Auth endpoint
     if (path === '/api/auth' && method === 'POST') {
       const body = JSON.parse(event.body || '{}');

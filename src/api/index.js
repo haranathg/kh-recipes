@@ -45,6 +45,17 @@ export async function verifyPasskey(passkey) {
   return true;
 }
 
+// Fetch recipes publicly (no auth)
+export async function fetchRecipesPublic() {
+  const response = await fetch(`${API_BASE}/recipes/public`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch recipes');
+  }
+
+  return response.json();
+}
+
 // Fetch all recipes
 export async function fetchRecipes() {
   const response = await fetch(`${API_BASE}/recipes`, {
