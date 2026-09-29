@@ -136,8 +136,9 @@ app.post('/api/parse', checkPasskey, async (req, res) => {
     }
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
+      model: 'claude-sonnet-5-5',
+      max_tokens: 4096,
+      output_config: { effort: 'low' },
       messages: [
         {
           role: 'user',
@@ -165,7 +166,7 @@ If any field is not mentioned, make a reasonable guess. Clean up the language to
       ]
     });
 
-    const content = message.content[0].text;
+    const content = message.content.find((b) => b.type === 'text')?.text ?? '';
     
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
